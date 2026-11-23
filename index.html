@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador de preço de cursos</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f6f5;--card:#fff;--ink:#1a2a29;--mut:#5b6e6c;--line:#d8e1df;--ac:#0b6b63;--acink:#fff;--ac2:#e3f1ef;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101817;--card:#17211f;--ink:#e6efed;--mut:#9bb0ad;--line:#2a3a37;--ac:#3fb5a8;--acink:#06201d;--ac2:#1b2f2c;--err:#ff8a80}}
+:root[data-theme="dark"]{--bg:#101817;--card:#17211f;--ink:#e6efed;--mut:#9bb0ad;--line:#2a3a37;--ac:#3fb5a8;--acink:#06201d;--ac2:#1b2f2c;--err:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px);color-scheme:light dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:84px}
+header{padding:14px 16px 8px}
+h1{font-size:19px;margin:0}
+nav{display:flex;overflow-x:auto;border-bottom:1px solid var(--line);padding:0 8px;scrollbar-width:none}
+nav button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:12px 12px;font:inherit;color:var(--mut);cursor:pointer}
+nav button.on{color:var(--ac);border-color:var(--ac);font-weight:600}
+main{padding:14px 16px;max-width:1100px;margin:0 auto}
+.help{color:var(--mut);margin:0 0 12px;font-size:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:3px;flex:1 1 150px}
+input,select,textarea{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+button{font:inherit;cursor:pointer}
+.pri{background:var(--ac);color:var(--acink);border:0;border-radius:8px;padding:10px 16px;min-height:44px}
+.ghost{background:none;color:var(--ac);border:1px solid var(--line);border-radius:8px;padding:10px 16px;min-height:44px}
+.lnk{background:none;border:0;color:var(--ac);padding:10px 8px}
+.lnk.del{color:var(--err)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item small,.sub{color:var(--mut);display:block;font-size:13px}
+.item .act{display:flex;flex:none}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:860px){.grid{grid-template-columns:380px 1fr}}
+h3{font-size:14px;margin:16px 0 6px}
+h3:first-child{margin-top:0}
+.chk{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:40px}
+.chk label{flex-direction:row;align-items:center;gap:9px;color:var(--ink);font-size:15px;flex:1}
+.chk input[type=checkbox]{width:22px;height:22px;flex:none}
+.chk input[type=number]{width:64px;padding:6px}
+.chk small{color:var(--mut)}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:600px){.cards{grid-template-columns:repeat(4,1fr)}}
+.card{background:var(--ac2);border-radius:8px;padding:10px 12px}
+.card span{display:block;font-size:12px;color:var(--mut)}
+.card b{font-size:18px}
+.card.hl{background:var(--ac);color:var(--acink)}.card.hl span{color:inherit;opacity:.8}
+.ln{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:15px}
+.ln span:last-child{white-space:nowrap}
+h4{margin:16px 0 4px;font-size:14px}
+.err,.neg{color:var(--err)}
+.cmp{border-collapse:collapse;width:100%;min-width:480px}.cmp th,.cmp td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.cmp th:first-child,.cmp td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}.cmp td.best{background:var(--ac2);font-weight:600}.cmp th{font-size:13px;color:var(--mut)}
+#bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));font-size:13px;color:var(--mut)}
+#bar b{display:block;color:var(--ink);font-size:17px}
+textarea{min-height:140px;font:13px/1.4 ui-monospace,monospace}
+</style></head><body>
+<header><h1>Simulador de preço de cursos</h1></header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<div id="bar" hidden></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl=v=>(v==null||isNaN(v))?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const SCHEMA={
+cursos:[{k:'nome',l:'Nome do curso',t:'text'},{k:'carga_horaria',l:'Carga horária',t:'num',u:'h'},{k:'vagas',l:'Nº padrão de alunos',t:'num',u:''}],
+profissionais:[{k:'nome',l:'Profissional / função',t:'text'},{k:'valor_hora',l:'Valor hora',t:'num',u:'R$'}],
+insumos:[{k:'nome',l:'Insumo (custo variável)',t:'text'},{k:'custo_aluno',l:'Custo por aluno',t:'num',u:'R$'}],
+indiretos:[{k:'nome',l:'Custo indireto (fixo da turma)',t:'text'},{k:'valor_hora',l:'Custo por hora de curso',t:'num',u:'R$'}],
+aliquotas:[{k:'nome',l:'Nome',t:'text'},{k:'tipo',l:'Tipo',t:'sel',o:['imposto','margem']},{k:'percentual',l:'Percentual',t:'num',u:'%'}],
+publicos:[{k:'nome',l:'Público',t:'text'},{k:'regra',l:'Regra',t:'sel',o:['desconto','custo']},{k:'desconto',l:'Desconto sobre o preço cheio',t:'num',u:'%'}]};
+const SEED={
+cursos:[['ACLS',16,12],['BLS',8,15],['PALS',16,12]],
+profissionais:[['Médico instrutor',120],['Enfermeiro instrutor',80],['Monitor',40]],
+insumos:[['Material didático e certificação',250],['Insumos descartáveis',30],['Alimentação',80]],
+indiretos:[['Simuladores e sala',60],['Secretaria e coordenação',40]],
+aliquotas:[['ISS e taxas de cobrança','imposto',8],['Markup sobre o custo','margem',20]],
+publicos:[['Externo','desconto',0],['Conveniado','desconto',10],['Equipe interna','custo',0]]};
+const TABS={simulador:'Simulador',comparar:'Comparar propostas',cursos:'Cursos',profissionais:'Profissionais',insumos:'Insumos',indiretos:'Custos indiretos',aliquotas:'Impostos e margem',publicos:'Públicos',dados:'Dados'};
+const HELP={
+cursos:'Cadastre cada tipo de curso com a carga horária e o número padrão de alunos por turma.',
+profissionais:'Profissionais ou funções com o valor da hora. Inclua o custo de oportunidade de quem deixa a assistência para ensinar.',
+insumos:'Custos variáveis: crescem a cada aluno (material, certificação, alimentação).',
+indiretos:'Custos fixos da turma, rateados por hora de curso (sala, simuladores, secretaria, coordenação).',
+aliquotas:'Cost plus: o tipo “margem” é o markup somado ao custo por aluno; o tipo “imposto” incide sobre o preço de venda. Preço = custo × (1 + markup) ÷ (1 − impostos).',
+publicos:'Tabela de preços por público. Regra “desconto” aplica % sobre o preço cheio; regra “custo” vende ao custo por aluno.'};
+const KEY='simcursos:v1';let storageOk=true,DB,tab='simulador';
+function seed(){const d={seq:1,sims:[]};for(const t in SCHEMA)d[t]=SEED[t].map(r=>{const o={id:d.seq++};SCHEMA[t].forEach((f,i)=>o[f.k]=r[i]);return o});return d}
+function loadDB(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s)}catch(e){storageOk=false}return seed()}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){storageOk=false}}
+DB=loadDB();
+if(!DB.testes)addTests();
+function addTests(){
+ const mk=(t,v)=>{const k=SCHEMA[t][0].k;let o=DB[t].find(x=>x[k]===v[0]);if(!o){o={id:DB.seq++};SCHEMA[t].forEach((f,i)=>o[f.k]=v[i]);DB[t].push(o)}return o.id};
+ const c1=mk('cursos',['Teste 01 – Curta duração: BLS (8h)',8,15]),c2=mk('cursos',['Teste 02 – Especialização em Obstetrícia (360h)',360,25]);
+ const med=mk('profissionais',['Médico instrutor',120]),enf=mk('profissionais',['Enfermeiro instrutor',80]),doc=mk('profissionais',['Docente especialista (média ponderada)',130]);
+ const m1=mk('insumos',['Material didático e certificação (curta duração)',120]),des=mk('insumos',['Insumos descartáveis',30]),ali=mk('insumos',['Alimentação',80]),
+  m2=mk('insumos',['Material didático e biblioteca (pós)',600]),dip=mk('insumos',['Certificação e diploma (pós)',150]),tcc=mk('insumos',['Orientação de TCC e banca',400]);
+ const sim=mk('indiretos',['Simuladores e sala',60]),sec=mk('indiretos',['Secretaria e coordenação',40]),coo=mk('indiretos',['Coordenação acadêmica e secretaria (pós)',35]);
+ const iss=mk('aliquotas',['ISS Belo Horizonte (educação e treinamento)','imposto',3]),pis=mk('aliquotas',['PIS (Lucro Presumido)','imposto',0.65]),cof=mk('aliquotas',['Cofins (Lucro Presumido)','imposto',3]),
+  k1=mk('aliquotas',['Markup Teste 01 (30%)','margem',30]),k2=mk('aliquotas',['Markup Teste 02 (20%)','margem',20]);
+ [['Externo','desconto',0],['Conveniado','desconto',10],['Equipe interna','custo',0]].forEach(v=>mk('publicos',v));
+ const T=[['Teste 01 – Curta duração (BLS, 8h, 15 alunos)',{curso_id:c1,alunos:15,profissionais:[{id:med,qtd:1},{id:enf,qtd:2}],insumos:[m1,des,ali],indiretos:[sim,sec],aliquotas:[iss,pis,cof,k1]}],
+  ['Teste 02 – Especialização em Obstetrícia (360h, 25 alunos)',{curso_id:c2,alunos:25,profissionais:[{id:doc,qtd:1}],insumos:[m2,dip,tcc],indiretos:[sim,coo],aliquotas:[iss,pis,cof,k2]}]];
+ DB.sims=DB.sims.filter(s=>!s.teste);
+ const quando=new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+ T.slice().reverse().forEach(([d,p])=>DB.sims.unshift({id:DB.seq++,criado:quando,descricao:d,teste:true,...simular(p)}));
+ DB.testes=1;persist()}
+
+function simular(p){
+ const g=(t,i)=>{const r=DB[t].find(x=>x.id===i);if(!r)throw new Error('Item selecionado não existe mais.');return r};
+ const curso=g('cursos',p.curso_id),n=Math.floor(p.alunos||curso.vagas||0),h=curso.carga_horaria;
+ if(n<1)throw new Error('Informe ao menos 1 aluno.');
+ const detFixo=[],detVar=[];
+ p.profissionais.forEach(it=>{const r=g('profissionais',it.id);detFixo.push({item:`${r.nome} × ${it.qtd} (${h}h × ${brl(r.valor_hora)})`,valor:r.valor_hora*it.qtd*h})});
+ p.indiretos.forEach(i=>{const r=g('indiretos',i);detFixo.push({item:`${r.nome} (${h}h)`,valor:r.valor_hora*h})});
+ p.insumos.forEach(i=>{const r=g('insumos',i);detVar.push({item:r.nome,valor:r.custo_aluno})});
+ const al=p.aliquotas.map(i=>g('aliquotas',i));
+ const sum=a=>a.reduce((s,x)=>s+x.valor,0),fixo=sum(detFixo),vr=sum(detVar);
+ const imp=al.filter(a=>a.tipo==='imposto').reduce((s,a)=>s+a.percentual,0),mar=al.filter(a=>a.tipo==='margem').reduce((s,a)=>s+a.percentual,0);
+ if(imp>=100)throw new Error('Os impostos somam 100% ou mais: o preço não pode ser calculado.');
+ const custo=(fixo+n*vr)/n,base=custo*(1+mar/100),preco=base/(1-imp/100),contrib=preco*(1-imp/100)-vr;
+ return{curso:curso.nome,alunos:n,fixo,var_aluno:vr,custo_aluno:custo,base,preco,pe:contrib>0?Math.ceil(fixo/contrib):null,
+  resultado:n*preco*(1-imp/100)-fixo-n*vr,imp,margem:mar,det_fixo:detFixo,det_var:detVar,
+  publicos:DB.publicos.map(u=>({nome:u.nome,regra:u.regra,desconto:u.desconto,preco:u.regra==='custo'?custo:preco*(1-u.desconto/100)}))}}
+
+function fmt(f,v){return f.u==='R$'?brl(v):f.u==='%'?v+'%':f.u==='h'?v+' h':v}
+function view(){
+ $('#nav').innerHTML=Object.entries(TABS).map(([k,v])=>`<button data-t="${k}" class="${k===tab?'on':''}">${v}</button>`).join('');
+ $$('#nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;view();scrollTo(0,0)});
+ $('#bar').hidden=tab!=='simulador';
+ tab==='simulador'?simView():tab==='comparar'?compView():tab==='dados'?dadosView():cfgView(tab)}
+
+function cfgView(t){
+ const fs=SCHEMA[t],rows=DB[t];
+ $('#main').innerHTML=`<p class="help">${HELP[t]}</p>
+ <div class="box"><form id="f" class="row"><input type="hidden" name="id">
+ ${fs.map(f=>f.t==='sel'?`<label>${f.l}<select name="${f.k}">${f.o.map(o=>`<option>${o}</option>`).join('')}</select></label>`
+  :`<label>${f.l}${f.u?' ('+f.u+')':''}<input name="${f.k}" ${f.t==='num'?'type="number" inputmode="decimal" step="0.01" min="0"':''} required></label>`).join('')}
+ <button class="pri">Salvar</button><button type="button" id="cl" class="ghost">Limpar</button></form></div>
+ <div class="box">${rows.map(r=>`<div class="item"><div>${esc(r.nome)}<small>${fs.slice(1).map(f=>esc(f.l)+': '+esc(fmt(f,r[f.k]))).join(' · ')}</small></div>
+ <div class="act"><button class="lnk" data-e="${r.id}">Editar</button><button class="lnk del" data-d="${r.id}">Excluir</button></div></div>`).join('')||'<p class="help">Nada cadastrado ainda. Use o formulário acima.</p>'}</div>`;
+ const form=$('#f');
+ $('#cl').onclick=()=>{form.reset();form.id.value=''};
+ form.onsubmit=e=>{e.preventDefault();const o={};
+  for(const f of fs){const v=form[f.k].value.trim();o[f.k]=f.t==='num'?parseFloat(v):v;if(f.t==='num'&&isNaN(o[f.k]))return alert('Informe um número válido em '+f.l+'.')}
+  if(form.id.value){Object.assign(DB[t].find(x=>x.id==form.id.value),o)}else{o.id=DB.seq++;DB[t].push(o)}
+  persist();cfgView(t)};
+ $$('[data-e]').forEach(b=>b.onclick=()=>{const r=rows.find(x=>x.id==b.dataset.e);fs.forEach(f=>form[f.k].value=r[f.k]);form.id.value=r.id;scrollTo(0,0)});
+ $$('[data-d]').forEach(b=>b.onclick=()=>{if(confirm('Excluir este item?')){DB[t]=DB[t].filter(x=>x.id!=b.dataset.d);persist();cfgView(t)}})}
+
+function simView(){
+ if(!DB.cursos.length){$('#main').innerHTML='<p class="help">Cadastre ao menos um curso na aba Cursos para simular.</p>';$('#bar').hidden=true;return}
+ const chk=(cls,list,sub,on)=>list.map(x=>`<div class="chk"><label><input type="checkbox" class="${cls}" value="${x.id}" ${on?'checked':''}><span>${esc(x.nome)} <small>${sub(x)}</small></span></label></div>`).join('')||'<small>Nenhum cadastrado.</small>';
+ $('#main').innerHTML=`<div class="grid"><div class="box">
+ <h3>Curso</h3><div class="row"><label>Tipo de curso<select id="curso">${DB.cursos.map(c=>`<option value="${c.id}">${esc(c.nome)} (${c.carga_horaria}h)</option>`).join('')}</select></label>
+ <label>Nº de alunos<input id="alunos" type="number" inputmode="numeric" min="1" value="${DB.cursos[0].vagas}"></label></div>
+ <h3>Profissionais (marque e informe a quantidade)</h3>
+ ${DB.profissionais.map(p=>`<div class="chk"><label><input type="checkbox" class="pr" value="${p.id}"><span>${esc(p.nome)} <small>${brl(p.valor_hora)}/h</small></span></label><input type="number" class="pq" min="1" value="1" aria-label="Quantidade"></div>`).join('')||'<small>Nenhum cadastrado.</small>'}
+ <h3>Insumos por aluno</h3>${chk('in',DB.insumos,x=>brl(x.custo_aluno),1)}
+ <h3>Custos indiretos da turma</h3>${chk('ind',DB.indiretos,x=>brl(x.valor_hora)+'/h',1)}
+ <h3>Impostos e margem</h3>${chk('al',DB.aliquotas,x=>x.percentual+'% '+(x.tipo==='margem'?'markup':x.tipo),1)}</div>
+ <div><div class="box" id="res"></div>
+ <div class="box"><label>Descrição (opcional)<input id="desc" placeholder="Ex.: ACLS turma março"></label><p><button class="pri" id="save">Salvar proposta</button></p></div></div></div>
+ <div class="box"><h3>Propostas salvas</h3><div id="hist"></div></div>`;
+ $('#curso').onchange=()=>{$('#alunos').value=DB.cursos.find(c=>c.id==$('#curso').value).vagas;calc()};
+ $$('#main input[type=checkbox],#main input[type=number]').forEach(i=>i.oninput=calc);
+ $('#save').onclick=()=>{try{const p=collect(),r=simular(p);DB.sims.unshift({id:DB.seq++,criado:new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}),descricao:p.descricao.trim(),...r});persist();$('#desc').value='';hist()}catch(x){alert(x.message)}};
+ calc();hist()}
+const ids=s=>$$(s+':checked').map(e=>+e.value);
+const collect=()=>({curso_id:+$('#curso').value,alunos:+$('#alunos').value,
+ profissionais:$$('.pr:checked').map(e=>({id:+e.value,qtd:Math.max(1,+e.closest('.chk').querySelector('.pq').value||1)})),
+ insumos:ids('.in'),indiretos:ids('.ind'),aliquotas:ids('.al'),descricao:$('#desc').value});
+function calc(){try{show(simular(collect()))}catch(e){$('#res').innerHTML=`<p class="err">${esc(e.message)}</p>`;$('#bar').innerHTML=''}}
+const card=(l,v,c='')=>`<div class="card ${c}"><span>${l}</span><b>${v}</b></div>`;
+const lines=a=>a.length?a.map(x=>`<div class="ln"><span>${esc(x.item)}</span><span>${brl(x.valor)}</span></div>`).join(''):'<small>Nenhum item selecionado.</small>';
+function show(r){
+ $('#res').innerHTML=`<div class="cards">${card('Preço de venda (cheio)',brl(r.preco),'hl')}${card('Custo por aluno',brl(r.custo_aluno))}
+ ${card('Ponto de equilíbrio',r.pe?r.pe+' alunos':'inviável')}${card('Resultado com '+r.alunos+' alunos',`<span class="${r.resultado<0?'neg':''}" style="display:inline;font-size:18px;color:inherit;opacity:1">${brl(r.resultado)}</span>`)}</div>
+ <h4>Composição do preço (cost plus)</h4>${lines([{item:'Custo por aluno',valor:r.custo_aluno},{item:`+ Markup (${r.margem}% sobre o custo)`,valor:r.base-r.custo_aluno},{item:`+ Impostos e taxas (${r.imp}% do preço)`,valor:r.preco-r.base},{item:'= Preço de venda',valor:r.preco}])}
+ <h4>Custos fixos da turma: ${brl(r.fixo)}</h4>${lines(r.det_fixo)}
+ <h4>Custos variáveis por aluno: ${brl(r.var_aluno)}</h4>${lines(r.det_var)}
+ <h4>Preço por público</h4>${r.publicos.map(p=>`<div class="ln"><span>${esc(p.nome)} <small class="sub" style="display:inline">${p.regra==='custo'?'(ao custo)':p.desconto?'(−'+p.desconto+'%)':''}</small></span><span>${brl(p.preco)}</span></div>`).join('')}
+ <p class="help" style="margin-top:12px">Cost plus: preço = custo por aluno × (1 + ${r.margem}%) ÷ (1 − ${r.imp}%). O resultado é calculado ao preço cheio, depois de impostos e custos.</p>`;
+ $('#bar').innerHTML=`<div>Preço cheio<b>${brl(r.preco)}</b></div><div>Equilíbrio<b>${r.pe?r.pe+' alunos':'—'}</b></div><div>Resultado<b class="${r.resultado<0?'neg':''}">${brl(r.resultado)}</b></div>`}
+function hist(){
+ const h=DB.sims;
+ $('#hist').innerHTML=h.length?h.map(s=>`<div class="item"><div>${esc(s.descricao||s.curso)}<small>${s.criado} · ${esc(s.curso)} · ${s.alunos} alunos</small>
+ <small>Custo/aluno ${brl(s.custo_aluno)} · Preço ${brl(s.preco)} · Equilíbrio ${s.pe??'—'} · Resultado <span class="${s.resultado<0?'neg':''}">${brl(s.resultado)}</span></small></div>
+ <div class="act"><button class="lnk del" data-s="${s.id}">Excluir</button></div></div>`).join('')
+ :'<p class="help">Nenhuma proposta salva. Ajuste os parâmetros e toque em Salvar proposta.</p>';
+ $$('[data-s]').forEach(b=>b.onclick=()=>{DB.sims=DB.sims.filter(x=>x.id!=b.dataset.s);persist();hist()})}
+
+function dadosView(){
+ $('#main').innerHTML=`<p class="help">Os dados ficam salvos neste aparelho e neste navegador. Outro celular ou computador começa com os exemplos. Para levar seus cadastros, gere o backup, copie o texto e cole na tela Dados do outro aparelho.</p>
+ ${storageOk?'':'<p class="err">Este navegador bloqueou o armazenamento: o que você cadastrar será perdido ao fechar a página.</p>'}
+ <div class="box"><h3>Premissas dos testes 01 e 02 (Belo Horizonte/MG)</h3><p class="help">ISS de Belo Horizonte: 3% para serviços de educação, ensino e treinamento (Lei 8.725/2003; confirme na Prefeitura). PIS 0,65% + Cofins 3%, regime Lucro Presumido (cumulativo). IRPJ e CSLL não entram como imposto sobre o preço: são considerados dentro do markup. Se a instituição for filantrópica ou sem fins lucrativos, PIS e Cofins podem não incidir. Em 2026 a CBS (0,9%) e o IBS (0,1%) são só teste e compensam PIS/Cofins. A partir de 2027 a CBS substitui PIS/Cofins, e o ISS cai gradualmente de 2029 a 2032, até ser extinto em 2033. Os custos são exemplos para substituir pelos reais.</p></div>
+ <div class="box"><textarea id="bk" placeholder="O backup aparece aqui. Para restaurar, cole um backup e toque em Restaurar."></textarea>
+ <div class="row" style="margin-top:10px"><button class="pri" id="gen">Gerar backup</button><button class="ghost" id="rest">Restaurar do texto</button><button class="ghost" id="rs">Voltar aos exemplos</button><button class="ghost" id="tt">Recarregar testes 01 e 02</button></div></div>`;
+ $('#gen').onclick=async()=>{const t=$('#bk');t.value=JSON.stringify(DB);t.select();try{await navigator.clipboard.writeText(t.value);alert('Backup copiado.')}catch(e){alert('Selecione e copie o texto do campo.')}};
+ $('#rest').onclick=()=>{try{const d=JSON.parse($('#bk').value);if(!d.cursos||!d.sims||!d.seq)throw 0;if(confirm('Substituir todos os dados atuais pelo backup?')){DB=d;persist();alert('Backup restaurado.')}}catch(e){alert('Texto inválido. Cole um backup gerado por este simulador.')}};
+ $('#rs').onclick=()=>{if(confirm('Apagar tudo e voltar aos exemplos?')){DB=seed();addTests();view()}};
+ $('#tt').onclick=()=>{addTests();alert('Testes 01 e 02 recarregados.');view()}}
+let cmp=new Set();
+function compView(){
+ const h=DB.sims;
+ if(h.length<2){$('#main').innerHTML='<p class="help">Salve ao menos duas propostas na aba Simulador para compará-las. Dica: varie o número de alunos, a equipe ou o markup e salve cada versão com uma descrição.</p>';return}
+ cmp=new Set([...cmp].filter(id=>h.some(s=>s.id===id)));if(!cmp.size)h.filter(s=>s.teste).forEach(s=>cmp.add(s.id));
+ $('#main').innerHTML=`<p class="help">Marque as propostas que quer comparar. O melhor valor de cada indicador fica em destaque.</p>
+ <div class="box">${h.map(s=>`<div class="chk"><label><input type="checkbox" class="cp" value="${s.id}" ${cmp.has(s.id)?'checked':''}><span>${esc(s.descricao||s.curso)} <small>${s.criado} · ${esc(s.curso)} · ${s.alunos} alunos</small></span></label></div>`).join('')}</div><div id="cmpres"></div>`;
+ $$('.cp').forEach(c=>c.onchange=()=>{c.checked?cmp.add(+c.value):cmp.delete(+c.value);cmpTable()});
+ cmpTable()}
+function cmpTable(){
+ const L=DB.sims.filter(s=>cmp.has(s.id));
+ if(L.length<2){$('#cmpres').innerHTML='<p class="help">Marque pelo menos duas propostas.</p>';return}
+ const net=s=>s.alunos*s.preco*(1-s.imp/100),mg=s=>net(s)?s.resultado/net(s)*100:0;
+ const names=[...new Set(L.flatMap(s=>s.publicos.map(p=>p.nome)))];
+ const defs=[
+ ['Curso',s=>esc(s.curso)],['Alunos',s=>s.alunos],
+ ['Custos fixos da turma',s=>brl(s.fixo)],['Custo variável por aluno',s=>brl(s.var_aluno)],
+ ['Custo por aluno',s=>brl(s.custo_aluno),s=>s.custo_aluno,'min'],
+ ['Markup sobre o custo',s=>s.margem+'%'],['Impostos e taxas',s=>s.imp+'%'],
+ ['Preço de venda',s=>brl(s.preco)],
+ ...names.map(n=>['Preço: '+esc(n),s=>{const p=s.publicos.find(x=>x.nome===n);return p?brl(p.preco):'—'}]),
+ ['Ponto de equilíbrio',s=>s.pe?s.pe+' alunos':'inviável',s=>s.pe??Infinity,'min'],
+ ['Resultado da turma',s=>brl(s.resultado),s=>s.resultado,'max'],
+ ['Margem líquida',s=>mg(s).toFixed(1).replace('.',',')+'%',mg,'max']];
+ const best=(f,m)=>{const v=L.map(f),t=m==='min'?Math.min(...v):Math.max(...v);return v.map(x=>x===t&&isFinite(t))};
+ $('#cmpres').innerHTML=`<div class="box" style="overflow-x:auto"><table class="cmp"><tr><th></th>${L.map(s=>`<th>${esc(s.descricao||s.curso)}</th>`).join('')}</tr>
+ ${defs.map(([l,fm,val,m])=>{const b=m?best(val,m):[];return `<tr><td>${l}</td>${L.map((s,i)=>`<td class="${b[i]?'best':''}">${fm(s)}</td>`).join('')}</tr>`}).join('')}</table></div>`}
+view();
+</script></body></html>
